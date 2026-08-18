@@ -22,9 +22,7 @@
       --danger: #ff0055;
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       font-family: 'Rajdhani', system-ui, -apple-system, sans-serif;
@@ -40,10 +38,7 @@
       min-height: 100vh;
     }
 
-    .container {
-      max-width: 1200px;
-      margin: 0 auto;
-    }
+    .container { max-width: 1200px; margin: 0 auto; }
 
     h1, h2, h3, h4 {
       font-family: 'Orbitron', sans-serif;
@@ -58,7 +53,6 @@
       color: #fff;
       text-shadow: 0 0 12px var(--neon-cyan), 0 0 24px rgba(0, 243, 255, 0.4);
       margin-bottom: 24px;
-      position: relative;
     }
 
     h1::after {
@@ -78,10 +72,7 @@
       padding-bottom: 8px;
     }
 
-    h3 {
-      font-size: 1.1rem;
-      color: #fff;
-    }
+    h3 { font-size: 1.1rem; color: #fff; }
 
     button {
       font-family: 'Orbitron', sans-serif;
@@ -102,6 +93,18 @@
     button:hover {
       box-shadow: 0 0 18px rgba(0, 243, 255, 0.7);
       transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text);
+      box-shadow: none;
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.2);
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
     }
 
     .btn-danger {
@@ -125,9 +128,7 @@
       transition: border-color 0.3s;
     }
 
-    .card-panel:hover {
-      border-color: var(--border-glow);
-    }
+    .card-panel:hover { border-color: var(--border-glow); }
 
     .grid-layout {
       display: grid;
@@ -139,16 +140,12 @@
       .grid-layout { grid-template-columns: 1fr; }
     }
 
-    .form-group {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 12px;
-    }
+    .form-group { display: flex; gap: 10px; margin-bottom: 12px; }
 
     input, select, textarea {
       font-family: 'Rajdhani', sans-serif;
       font-size: 1rem;
-      background: rgba(7, 10, 18, 0.8);
+      background: rgba(7, 10, 18, 0.85);
       border: 1px solid var(--border);
       color: var(--text);
       padding: 10px 12px;
@@ -174,7 +171,6 @@
       padding-right: 6px;
     }
 
-    /* Custom Scrollbar */
     .search-results::-webkit-scrollbar { width: 6px; }
     .search-results::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
     .search-results::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
@@ -231,12 +227,7 @@
       box-shadow: 0 0 8px var(--success);
     }
 
-    .deck-card-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-top: 12px;
-    }
+    .deck-card-list { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
 
     .deck-card-row {
       display: flex;
@@ -248,19 +239,9 @@
       border-radius: 6px;
     }
 
-    .deck-card-row img {
-      width: 38px;
-      border-radius: 3px;
-    }
-
-    .deck-card-info {
-      flex-grow: 1;
-      font-size: 0.95rem;
-    }
-
-    .deck-card-info strong {
-      color: #fff;
-    }
+    .deck-card-row img { width: 38px; border-radius: 3px; }
+    .deck-card-info { flex-grow: 1; font-size: 0.95rem; }
+    .deck-card-info strong { color: #fff; }
 
     .tag {
       font-size: 0.75rem;
@@ -270,6 +251,71 @@
       color: var(--neon-cyan);
       border: 1px solid rgba(0, 243, 255, 0.3);
       font-family: 'Orbitron', sans-serif;
+    }
+
+    /* CUSTOM MODAL DIALOG STYLES */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(5, 8, 16, 0.85);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-box {
+      background: var(--panel-bg);
+      border: 1px solid var(--neon-cyan);
+      box-shadow: 0 0 30px rgba(0, 243, 255, 0.3), inset 0 0 15px rgba(0, 243, 255, 0.1);
+      border-radius: 12px;
+      padding: 24px;
+      width: 90%;
+      max-width: 440px;
+      transform: scale(0.9);
+      transition: transform 0.25s ease;
+    }
+
+    .modal-overlay.active .modal-box {
+      transform: scale(1);
+    }
+
+    .modal-box h3 {
+      color: var(--neon-cyan);
+      font-size: 1.2rem;
+      margin-bottom: 14px;
+      text-shadow: 0 0 8px rgba(0, 243, 255, 0.5);
+    }
+
+    .modal-field {
+      margin-bottom: 14px;
+    }
+
+    .modal-field label {
+      display: block;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+      font-family: 'Orbitron', sans-serif;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
     }
   </style>
 </head>
@@ -307,6 +353,18 @@
     </div>
   </div>
 
+  <!-- CUSTOM MODAL HTML STRUCTURE -->
+  <div id="customModal" class="modal-overlay">
+    <div class="modal-box">
+      <h3 id="modalTitle">Configure Card</h3>
+      <div id="modalBody"></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" id="modalCancelBtn">Cancel</button>
+        <button id="modalConfirmBtn">Confirm</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     let decks = JSON.parse(localStorage.getItem('ygo_decks_v2')) || [];
     let lastSearchResults = [];
@@ -314,6 +372,36 @@
     function saveDecks() {
       localStorage.setItem('ygo_decks_v2', JSON.stringify(decks));
       renderDecks();
+    }
+
+    // --- CUSTOM MODAL DIALOG SYSTEM ---
+    function showModal({ title, bodyHTML, confirmText = 'Confirm', isDanger = false, onConfirm }) {
+      const modal = document.getElementById('customModal');
+      const titleEl = document.getElementById('modalTitle');
+      const bodyEl = document.getElementById('modalBody');
+      const confirmBtn = document.getElementById('modalConfirmBtn');
+      const cancelBtn = document.getElementById('modalCancelBtn');
+
+      titleEl.textContent = title;
+      bodyEl.innerHTML = bodyHTML;
+      confirmBtn.textContent = confirmText;
+      
+      confirmBtn.className = isDanger ? 'btn-danger' : '';
+
+      const closeModal = () => {
+        modal.classList.remove('active');
+        confirmBtn.onclick = null;
+        cancelBtn.onclick = null;
+      };
+
+      cancelBtn.onclick = closeModal;
+      confirmBtn.onclick = () => {
+        if (onConfirm()) {
+          closeModal();
+        }
+      };
+
+      modal.classList.add('active');
     }
 
     // --- CARD SEARCH (YGOPRODeck API) ---
@@ -360,14 +448,14 @@
             <select id="target-deck-${card.id}" style="font-size:0.8rem; margin-bottom: 6px;">
               ${deckOptions}
             </select>
-            <button onclick="addCardToDeck(${card.id})" style="font-size:0.75rem; padding: 5px;">+ Add</button>
+            <button onclick="openAddCardModal(${card.id})" style="font-size:0.75rem; padding: 5px;">+ Add</button>
           ` : '<small style="color: var(--text-muted); font-size:0.75rem;">Create a deck first</small>'}
         `;
         container.appendChild(item);
       });
     }
 
-    // --- DECK MANAGEMENT ---
+    // --- DECK MANAGEMENT & DIALOGS ---
     function addDeck() {
       const nameInput = document.getElementById('deckName');
       if (!nameInput.value.trim()) return;
@@ -384,33 +472,73 @@
     }
 
     function deleteDeck(id) {
-      if (!confirm("Are you sure you want to delete this deck?")) return;
-      decks = decks.filter(d => d.id !== id);
-      saveDecks();
-      renderSearchResults();
+      const deck = decks.find(d => d.id === id);
+      showModal({
+        title: 'Delete Deck',
+        bodyHTML: `<p>Are you sure you want to permanently delete <strong>${deck ? deck.name : 'this deck'}</strong>?</p>`,
+        confirmText: 'Delete Deck',
+        isDanger: true,
+        onConfirm: () => {
+          decks = decks.filter(d => d.id !== id);
+          saveDecks();
+          renderSearchResults();
+          return true;
+        }
+      });
     }
 
-    function addCardToDeck(cardApiId) {
+    function openAddCardModal(cardApiId) {
       const cardData = lastSearchResults.find(c => c.id === cardApiId);
       const targetDeckId = parseInt(document.getElementById(`target-deck-${cardApiId}`).value);
       const deck = decks.find(d => d.id === targetDeckId);
 
       if (!cardData || !deck) return;
 
-      const typePrompt = prompt("Deck Section (Main / Extra / Side):", cardData.type.includes("Extra") || cardData.type.includes("Fusion") || cardData.type.includes("Synchro") || cardData.type.includes("XYZ") || cardData.type.includes("Link") ? "Extra" : "Main");
-      const neededPrompt = parseInt(prompt("Total Copies Needed:", "3")) || 1;
-      const acquiredPrompt = parseInt(prompt("Copies Currently Acquired:", "0")) || 0;
+      const isExtra = cardData.type.includes("Extra") || cardData.type.includes("Fusion") || 
+                      cardData.type.includes("Synchro") || cardData.type.includes("XYZ") || 
+                      cardData.type.includes("Link");
 
-      deck.cards.push({
-        id: Date.now(),
-        name: cardData.name,
-        type: typePrompt || "Main",
-        img: cardData.card_images[0]?.image_url_small || '',
-        needed: neededPrompt,
-        acquired: acquiredPrompt
+      const defaultSection = isExtra ? "Extra" : "Main";
+
+      showModal({
+        title: `Add ${cardData.name}`,
+        bodyHTML: `
+          <div class="modal-field">
+            <label>Deck Section</label>
+            <select id="modalCardType">
+              <option value="Main" ${defaultSection === 'Main' ? 'selected' : ''}>Main Deck</option>
+              <option value="Extra" ${defaultSection === 'Extra' ? 'selected' : ''}>Extra Deck</option>
+              <option value="Side">Side Deck</option>
+            </select>
+          </div>
+          <div class="modal-field">
+            <label>Total Copies Needed</label>
+            <input type="number" id="modalCardNeeded" value="3" min="1" max="99">
+          </div>
+          <div class="modal-field">
+            <label>Copies Currently Acquired</label>
+            <input type="number" id="modalCardAcquired" value="0" min="0" max="99">
+          </div>
+        `,
+        confirmText: 'Add to Deck',
+        onConfirm: () => {
+          const type = document.getElementById('modalCardType').value;
+          const needed = parseInt(document.getElementById('modalCardNeeded').value) || 1;
+          const acquired = parseInt(document.getElementById('modalCardAcquired').value) || 0;
+
+          deck.cards.push({
+            id: Date.now(),
+            name: cardData.name,
+            type: type,
+            img: cardData.card_images[0]?.image_url_small || '',
+            needed: needed,
+            acquired: acquired
+          });
+
+          saveDecks();
+          return true;
+        }
       });
-
-      saveDecks();
     }
 
     function updateAcquired(deckId, cardId, delta) {
