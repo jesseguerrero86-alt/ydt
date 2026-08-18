@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yu-Gi-Oh! Deck Tracker</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --accent: #38bdf8;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+      --success: #22c55e;
+    }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 20px;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1, h2, h3 { margin: 0 0 10px 0; }
+    button {
+      background: var(--accent);
+      color: #000;
+      border: none;
+      padding: 8px 14px;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover { opacity: 0.9; }
+    .btn-danger { background: #ef4444; color: #fff; }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .form-group { margin-bottom: 12px; display: flex; gap: 8px; }
+    input, select, textarea {
+      background: #0f172a;
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px;
+      border-radius: 4px;
+      width: 100%;
+    }
+    .deck-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+    .progress-bar {
+      background: var(--border);
+      height: 12px;
+      border-radius: 6px;
+      overflow: hidden;
+      margin: 10px 0;
+    }
+    .progress-fill { background: var(--success); height: 100%; width: 0%; transition: width 0.3s; }
+    .card-list { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; }
+    .card-item { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Yu-Gi-Oh! Deck Tracker</h1>
+    
+    <!-- Create Deck Form -->
+    <div class="card">
+      <h2>Create New Deck</h2>
+      <div class="form-group">
+        <input type="text" id="deckName" placeholder="Deck Name (e.g., Branded Despia)" />
+        <button onclick="addDeck()">Add Deck</button>
+      </div>
+    </div>
+
+    <!-- Decks Display -->
+    <div id="deckList" class="deck-grid"></div>
+  </div>
+
+  <script>
+    let decks = JSON.parse(localStorage.getItem('ygo_decks')) || [];
+
+    function saveDecks() {
+      localStorage.setItem('ygo_decks', JSON.stringify(decks));
+      render();
+    }
+
+    function addDeck() {
+      const nameInput = document.getElementById('deckName');
+      if (!nameInput.value.trim()) return;
+      
+      decks.push({
+        id: Date.now(),
+        name: nameInput.value.trim(),
+        cards: [],
+        augmentations: ''
+      });
+      nameInput.value = '';
+      saveDecks();
+    }
+
+    function deleteDeck(id) {
+      decks = decks.filter(d => d.id !== id);
+      saveDecks();
+    }
+
+    function addCard(deckId) {
+      const name = prompt("Card Name:");
+      if (!name) return;
+      const type = prompt("Type (Main / Extra / Side):", "Main");
+      const needed = parseInt(prompt("Total Copies Needed:", "3")) || 1;
+      const acquired = parseInt(prompt("Copies Acquired:", "0")) || 0;
+
+      const deck = decks.find(d => d.id === deckId);
+      deck.cards.push({ id: Date.now(), name, type, needed, acquired });
+      saveDecks();
+    }
+
+    function updateCardAcquired(deckId, cardId, change) {
+      const deck = decks.find(d => d.id === deckId);
+      const card = deck.cards.find(c => c.id === cardId);
+      card.acquired = Math.max(0, Math.min(card.needed, card.acquired + change));
+      saveDecks();
+    }
+
+    function updateAugmentations(deckId, text) {
+      const deck = decks.find(d => d.id === deckId);
+      deck.augmentations = text;
+      localStorage.setItem('ygo_decks', JSON.stringify(decks));
+    }
+
+    function render() {
+      const container = document.getElementById('deckList');
+      container.innerHTML = '';
+
+      decks.forEach(deck => {
+        // Calculate card counts and progress
+        let mainCount = 0, extraCount = 0, sideCount = 0;
+        let totalNeeded = 0, totalAcquired = 0;
+
+        deck.cards.forEach(c => {
+          if (c.type.toLowerCase() === 'extra') extraCount += c.needed;
+          else if (c.type.toLowerCase() === 'side') sideCount += c.needed;
+          else mainCount += c.needed;
+
+          totalNeeded += c.needed;
+          totalAcquired += c.acquired;
+        });
+
+        const progressPercent = totalNeeded > 0 ? Math.round((totalAcquired / totalNeeded) * 100) : 0;
+
+        const deckEl = document.createElement('div');
+        deckEl.className = 'card';
+        deckEl.innerHTML = `
+          <h3>${deck.name}</h3>
+          <p style="font-size: 0.9em; color: var(--text-muted);">
+            Main: ${mainCount} | Extra: ${extraCount} | Side: ${sideCount}
+          </p>
+          <div>
+            <small>Build Progress: ${totalAcquired}/${totalNeeded} cards (${progressPercent}%)</small>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: ${progressPercent}%"></div>
+            </div>
+          </div>
+
+          <div class="card-list">
+            <h4>Cards Needed</h4>
+            ${deck.cards.map(c => `
+              <div class="card-item">
+                <span>[${c.type}] ${c.name} (${c.acquired}/${c.needed})</span>
+                <div>
+                  <button onclick="updateCardAcquired(${deck.id}, ${c.id}, 1)">+</button>
+                  <button onclick="updateCardAcquired(${deck.id}, ${c.id}, -1)">-</button>
+                </div>
+              </div>
+            `).join('')}
+            <button style="margin-top: 10px; width: 100%;" onclick="addCard(${deck.id})">+ Add Card</button>
+          </div>
+
+          <div style="margin-top: 15px;">
+            <h4>Suggested Augmentations / Notes</h4>
+            <textarea placeholder="e.g., Replace Effect Veiler with Infinite Impermanence..." 
+              onchange="updateAugmentations(${deck.id}, this.value)">${deck.augmentations || ''}</textarea>
+          </div>
+
+          <button class="btn-danger" style="margin-top: 15px; width: 100%;" onclick="deleteDeck(${deck.id})">Delete Deck</button>
+        `;
+        container.appendChild(deckEl);
+      });
+    }
+
+    render();
+  </script>
+</body>
+</html>
