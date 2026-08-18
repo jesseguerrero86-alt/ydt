@@ -72,7 +72,7 @@
       padding-bottom: 8px;
     }
 
-    h3 { font-size: 1.1rem; color: #fff; }
+    h3 { font-size: 1.1rem; color: #fff; margin: 0; }
 
     button {
       font-family: 'Orbitron', sans-serif;
@@ -142,10 +142,10 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
     }
 
-    .panel-header h2 {
+    .panel-header h2, .panel-header h3 {
       margin: 0;
       border-bottom: none;
       padding-bottom: 0;
@@ -236,8 +236,8 @@
       line-height: 1.2;
     }
 
-    /* FULLSCREEN SEARCH MODAL STYLES */
-    .fullscreen-search-overlay {
+    /* FULLSCREEN OVERLAYS (SEARCH & DECK) */
+    .fullscreen-overlay {
       position: fixed;
       top: 0;
       left: 0;
@@ -254,12 +254,12 @@
       transition: opacity 0.3s ease;
     }
 
-    .fullscreen-search-overlay.active {
+    .fullscreen-overlay.active {
       opacity: 1;
       pointer-events: auto;
     }
 
-    .fullscreen-search-container {
+    .fullscreen-container {
       max-width: 1400px;
       width: 100%;
       margin: 0 auto;
@@ -284,7 +284,7 @@
       font-size: 1.5rem;
     }
 
-    .fullscreen-search-overlay .search-results {
+    .fullscreen-overlay .search-results {
       max-height: none;
       flex-grow: 1;
       grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -409,6 +409,14 @@
       max-height: 520px;
       overflow-y: auto;
       padding-right: 4px;
+    }
+
+    .fullscreen-overlay .deck-card-grid {
+      max-height: none;
+      flex-grow: 1;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 16px;
+      padding-right: 8px;
     }
 
     .deck-card-grid::-webkit-scrollbar { width: 6px; }
@@ -628,8 +636,8 @@
   </div>
 
   <!-- FULLSCREEN SEARCH MODAL OVERLAY -->
-  <div id="fullscreenSearchModal" class="fullscreen-search-overlay">
-    <div class="fullscreen-search-container">
+  <div id="fullscreenSearchModal" class="fullscreen-overlay">
+    <div class="fullscreen-container">
       <div class="fullscreen-header">
         <h2>Database Search</h2>
         <button class="btn-secondary btn-icon" onclick="toggleFullscreenSearch()">
@@ -643,6 +651,19 @@
       <div id="fullscreenSearchResults" class="search-results">
         <small style="color: var(--text-muted);">Query the YGOPRODeck API to view and add cards.</small>
       </div>
+    </div>
+  </div>
+
+  <!-- FULLSCREEN DECK MODAL OVERLAY -->
+  <div id="fullscreenDeckModal" class="fullscreen-overlay">
+    <div class="fullscreen-container">
+      <div class="fullscreen-header">
+        <h2 id="fullscreenDeckTitle">Deck Details</h2>
+        <button class="btn-secondary btn-icon" onclick="closeFullscreenDeck()">
+          <span>✕ Close</span>
+        </button>
+      </div>
+      <div id="fullscreenDeckBody" style="overflow-y: auto; flex-grow: 1; padding-right: 6px;"></div>
     </div>
   </div>
 
@@ -663,10 +684,14 @@
     let collapsedSections = JSON.parse(localStorage.getItem('ygo_collapsed_v1')) || {};
     let lastSearchResults = [];
     let isFullscreenSearchActive = false;
+    let activeExpandedDeckId = null;
 
     function saveDecks() {
       localStorage.setItem('ygo_decks_v2', JSON.stringify(decks));
       renderDecks();
+      if (activeExpandedDeckId !== null) {
+        renderFullscreenDeck(activeExpandedDeckId);
+      }
     }
 
     function toggleSection(sectionKey) {
@@ -692,10 +717,90 @@
       renderSearchResults();
     }
 
-    // Close on Escape key
+    // --- FULLSCREEN DECK EXPAND TOGGLE ---
+    function openFullscreenDeck(deckId) {
+      activeExpandedDeckId = deckId;
+      const modal = document.getElementById('fullscreenDeckModal');
+      renderFullscreenDeck(deckId);
+      modal.classList.add('active');
+    }
+
+    function closeFullscreenDeck() {
+      const modal = document.getElementById('fullscreenDeckModal');
+      modal.classList.remove('active');
+      activeExpandedDeckId = null;
+    }
+
+    function renderFullscreenDeck(deckId) {
+      const deck = decks.find(d => d.id === deckId);
+      if (!deck) return;
+
+      document.getElementById('fullscreenDeckTitle').textContent = deck.name;
+      const container = document.getElementById('fullscreenDeckBody');
+
+      let mainCount = 0, extraCount = 0, sideCount = 0;
+      let totalNeeded = 0, totalAcquired = 0;
+
+      deck.cards.forEach(c => {
+        const typeLower = c.type.toLowerCase();
+        if (typeLower === 'extra') extraCount += c.needed;
+        else if (typeLower === 'side') sideCount += c.needed;
+        else mainCount += c.needed;
+
+        totalNeeded += c.needed;
+        totalAcquired += c.acquired;
+      });
+
+      const progressPercent = totalNeeded > 0 ? Math.round((totalAcquired / totalNeeded) * 100) : 0;
+
+      container.innerHTML = `
+        <div style="margin-bottom: 20px;">
+          <p style="font-size: 1rem; color: var(--text-muted); margin-bottom: 8px;">
+            Main: <strong style="color:var(--neon-cyan);">${mainCount}</strong> | 
+            Extra: <strong style="color:var(--neon-cyan);">${extraCount}</strong> | 
+            Side: <strong style="color:var(--neon-cyan);">${sideCount}</strong>
+          </p>
+          <div style="display:flex; justify-content:space-between; font-size:0.9rem;">
+            <span>Build Progress</span>
+            <span style="color:var(--neon-cyan);">${totalAcquired}/${totalNeeded} (${progressPercent}%)</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: ${progressPercent}%"></div>
+          </div>
+        </div>
+
+        <h3 style="color: var(--neon-cyan); margin-bottom: 12px;">Card List (${deck.cards.length})</h3>
+        ${deck.cards.length === 0 ? `
+          <small style="color: var(--text-muted); display: block; padding: 12px 0;">No cards added to this deck yet.</small>
+        ` : `
+          <div class="deck-card-grid" style="margin-bottom: 24px;">
+            ${deck.cards.map(c => `
+              <div class="deck-card-item">
+                <button class="btn-danger deck-card-remove" onclick="removeCard(${deck.id}, ${c.id})" title="Remove card">&times;</button>
+                ${c.img ? `<img src="${c.img}" onclick="showCardDetails(${c.apiId || 'null'}, '${c.name.replace(/'/g, "\\'")}')" title="Click to view details">` : ''}
+                <span class="deck-card-name" title="${c.name}">${c.name}</span>
+                <div class="deck-card-badge"><span class="tag">${c.type}</span></div>
+                <div class="deck-card-controls">
+                  <button onclick="updateAcquired(${deck.id}, ${c.id}, -1)">-</button>
+                  <span class="deck-card-count">${c.acquired}/${c.needed}</span>
+                  <button onclick="updateAcquired(${deck.id}, ${c.id}, 1)">+</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `}
+
+        <h3 style="color: var(--neon-cyan); margin-bottom: 12px;">Suggested Augmentations / Tech Notes</h3>
+        <textarea rows="4" placeholder="e.g., Side in Droll & Lock Bird vs. search heavy matchups..." 
+          onchange="updateAugmentations(${deck.id}, this.value)" style="margin-bottom: 20px;">${deck.augmentations || ''}</textarea>
+      `;
+    }
+
+    // Close overlays on Escape key
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && isFullscreenSearchActive) {
-        toggleFullscreenSearch();
+      if (e.key === 'Escape') {
+        if (activeExpandedDeckId !== null) closeFullscreenDeck();
+        else if (isFullscreenSearchActive) toggleFullscreenSearch();
       }
     });
 
@@ -749,6 +854,7 @@
         confirmText: 'Delete Deck',
         isDanger: true,
         onConfirm: () => {
+          if (activeExpandedDeckId === id) closeFullscreenDeck();
           decks = decks.filter(d => d.id !== id);
           delete collapsedSections[`cards_${id}`];
           delete collapsedSections[`notes_${id}`];
@@ -1006,7 +1112,12 @@
         const deckEl = document.createElement('div');
         deckEl.className = 'card-panel';
         deckEl.innerHTML = `
-          <h3>${deck.name}</h3>
+          <div class="panel-header">
+            <h3>${deck.name}</h3>
+            <button class="btn-secondary btn-icon" onclick="openFullscreenDeck(${deck.id})">
+              <span>⛶ Expand</span>
+            </button>
+          </div>
           <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 12px;">
             Main: <strong style="color:var(--neon-cyan);">${mainCount}</strong> | 
             Extra: <strong style="color:var(--neon-cyan);">${extraCount}</strong> | 
