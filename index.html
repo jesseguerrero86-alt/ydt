@@ -219,6 +219,12 @@
       border-radius: 4px;
       margin-bottom: 8px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .search-card-item img:hover {
+      opacity: 0.85;
     }
 
     .search-card-item span {
@@ -284,6 +290,51 @@
       grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
       gap: 18px;
       padding-right: 12px;
+    }
+
+    /* CARD DETAILS MODAL STYLES */
+    .card-detail-layout {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    @media (max-width: 600px) {
+      .card-detail-layout {
+        grid-template-columns: 1fr;
+      }
+      .card-detail-img {
+        max-width: 180px;
+        margin: 0 auto;
+      }
+    }
+
+    .card-detail-img {
+      width: 100%;
+      border-radius: 8px;
+      box-shadow: 0 0 20px rgba(0, 243, 255, 0.3);
+      border: 1px solid var(--border);
+    }
+
+    .card-detail-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .card-detail-desc {
+      font-size: 0.95rem;
+      line-height: 1.5;
+      color: #e2e8f0;
+      background: rgba(7, 10, 18, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 12px;
+      border-radius: 6px;
+      max-height: 220px;
+      overflow-y: auto;
+      white-space: pre-wrap;
     }
 
     /* Deck Lists */
@@ -362,7 +413,17 @@
       border-radius: 6px;
     }
 
-    .deck-card-row img { width: 38px; border-radius: 3px; }
+    .deck-card-row img { 
+      width: 38px; 
+      border-radius: 3px; 
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .deck-card-row img:hover {
+      opacity: 0.8;
+    }
+
     .deck-card-info { flex-grow: 1; font-size: 0.95rem; }
     .deck-card-info strong { color: #fff; }
 
@@ -409,6 +470,10 @@
       max-width: 440px;
       transform: scale(0.9);
       transition: transform 0.25s ease;
+    }
+
+    .modal-box.large {
+      max-width: 620px;
     }
 
     .modal-overlay.active .modal-box {
@@ -502,10 +567,10 @@
 
   <!-- CUSTOM MODAL HTML STRUCTURE -->
   <div id="customModal" class="modal-overlay">
-    <div class="modal-box">
+    <div class="modal-box" id="modalBox">
       <h3 id="modalTitle">Configure Card</h3>
       <div id="modalBody"></div>
-      <div class="modal-actions">
+      <div class="modal-actions" id="modalActions">
         <button class="btn-secondary" id="modalCancelBtn">Cancel</button>
         <button id="modalConfirmBtn">Confirm</button>
       </div>
@@ -554,8 +619,9 @@
     });
 
     // --- CUSTOM MODAL DIALOG SYSTEM ---
-    function showModal({ title, bodyHTML, confirmText = 'Confirm', isDanger = false, onConfirm }) {
+    function showModal({ title, bodyHTML, confirmText = 'Confirm', isDanger = false, isLarge = false, hideConfirm = false, onConfirm }) {
       const modal = document.getElementById('customModal');
+      const box = document.getElementById('modalBox');
       const titleEl = document.getElementById('modalTitle');
       const bodyEl = document.getElementById('modalBody');
       const confirmBtn = document.getElementById('modalConfirmBtn');
@@ -564,7 +630,12 @@
       titleEl.textContent = title;
       bodyEl.innerHTML = bodyHTML;
       confirmBtn.textContent = confirmText;
+      confirmBtn.style.display = hideConfirm ? 'none' : 'inline-block';
+      cancelBtn.textContent = hideConfirm ? 'Close' : 'Cancel';
       
+      if (isLarge) box.classList.add('large');
+      else box.classList.remove('large');
+
       confirmBtn.className = isDanger ? 'btn-danger' : '';
 
       const closeModal = () => {
@@ -575,12 +646,72 @@
 
       cancelBtn.onclick = closeModal;
       confirmBtn.onclick = () => {
-        if (onConfirm()) {
+        if (onConfirm && onConfirm()) {
           closeModal();
         }
       };
 
       modal.classList.add('active');
+    }
+
+    // --- CARD DETAIL PREVIEW MODAL ---
+    async function showCardDetails(cardId, fallbackName = '') {
+      let card = lastSearchResults.find(c => c.id === cardId || c.id === parseInt(cardId));
+      
+      if (!card) {
+        // Fetch card info from API if not found in current search results
+        showModal({
+          title: fallbackName || 'Loading Card Details...',
+          bodyHTML: '<small style="color: var(--neon-cyan);">Fetching card details from database...</small>',
+          hideConfirm: true,
+          isLarge: true
+        });
+
+        try {
+          const queryParam = cardId ? `id=${cardId}` : `name=${encodeURIComponent(fallbackName)}`;
+          const response = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?${queryParam}`);
+          const data = await response.json();
+          card = data.data[0];
+        } catch (err) {
+          showModal({
+            title: 'Error',
+            bodyHTML: '<p style="color: var(--danger);">Failed to load card details.</p>',
+            hideConfirm: true
+          });
+          return;
+        }
+      }
+
+      if (!card) return;
+
+      const fullImg = card.card_images[0]?.image_url || card.card_images[0]?.image_url_small || '';
+      const atkDef = (card.atk !== undefined && card.def !== undefined) ? `ATK: ${card.atk} / DEF: ${card.def}` : '';
+      const levelRank = card.level ? `★ Level ${card.level}` : (card.linkval ? `Link-${card.linkval}` : '');
+
+      showModal({
+        title: card.name,
+        isLarge: true,
+        hideConfirm: true,
+        bodyHTML: `
+          <div class="card-detail-layout">
+            <img class="card-detail-img" src="${fullImg}" alt="${card.name}">
+            <div>
+              <div class="card-detail-meta">
+                <span class="tag">${card.type || 'Card'}</span>
+                ${card.race ? `<span class="tag">${card.race}</span>` : ''}
+                ${card.attribute ? `<span class="tag">${card.attribute}</span>` : ''}
+                ${card.archetype ? `<span class="tag">${card.archetype}</span>` : ''}
+              </div>
+              ${levelRank || atkDef ? `
+                <div style="font-size: 0.9rem; margin-bottom: 10px; color: var(--neon-cyan);">
+                  <strong>${levelRank}</strong> ${levelRank && atkDef ? '•' : ''} <strong>${atkDef}</strong>
+                </div>
+              ` : ''}
+              <div class="card-detail-desc">${card.desc || 'No description available.'}</div>
+            </div>
+          </div>
+        `
+      });
     }
 
     // --- CARD SEARCH (YGOPRODeck API) ---
@@ -634,7 +765,7 @@
         item.className = 'search-card-item';
 
         item.innerHTML = `
-          <img src="${cardImg}" alt="${card.name}">
+          <img src="${cardImg}" alt="${card.name}" onclick="showCardDetails(${card.id})" title="Click to view details">
           <span>${card.name}</span>
           ${decks.length > 0 ? `
             <button onclick="openAddCardModal(${card.id})" style="font-size:0.75rem; padding: 6px; width:100%;">+ Add</button>
@@ -729,6 +860,7 @@
 
           deck.cards.push({
             id: Date.now(),
+            apiId: cardData.id,
             name: cardData.name,
             type: type,
             img: cardData.card_images[0]?.image_url_small || '',
@@ -819,7 +951,7 @@
                 <div class="deck-card-list">
                   ${deck.cards.map(c => `
                     <div class="deck-card-row">
-                      ${c.img ? `<img src="${c.img}">` : ''}
+                      ${c.img ? `<img src="${c.img}" onclick="showCardDetails(${c.apiId || 'null'}, '${c.name.replace(/'/g, "\\'")}')" title="Click to view details">` : ''}
                       <div class="deck-card-info">
                         <strong>${c.name}</strong> <span class="tag">${c.type}</span><br>
                         <span style="color: var(--text-muted); font-size: 0.85rem;">Acquired: ${c.acquired} / ${c.needed}</span>
