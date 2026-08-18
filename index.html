@@ -491,17 +491,12 @@
         const cardImg = card.card_images[0]?.image_url_small || '';
         const item = document.createElement('div');
         item.className = 'search-card-item';
-        
-        let deckOptions = decks.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
 
         item.innerHTML = `
           <img src="${cardImg}" alt="${card.name}">
           <span>${card.name}</span>
           ${decks.length > 0 ? `
-            <select id="target-deck-${card.id}" style="font-size:0.8rem; margin-bottom: 6px;">
-              ${deckOptions}
-            </select>
-            <button onclick="openAddCardModal(${card.id})" style="font-size:0.75rem; padding: 5px;">+ Add</button>
+            <button onclick="openAddCardModal(${card.id})" style="font-size:0.75rem; padding: 6px; width:100%;">+ Add</button>
           ` : '<small style="color: var(--text-muted); font-size:0.75rem;">Create a deck first</small>'}
         `;
         container.appendChild(item);
@@ -545,20 +540,25 @@
 
     function openAddCardModal(cardApiId) {
       const cardData = lastSearchResults.find(c => c.id === cardApiId);
-      const targetDeckId = parseInt(document.getElementById(`target-deck-${cardApiId}`).value);
-      const deck = decks.find(d => d.id === targetDeckId);
 
-      if (!cardData || !deck) return;
+      if (!cardData || decks.length === 0) return;
 
       const isExtra = cardData.type.includes("Extra") || cardData.type.includes("Fusion") || 
                       cardData.type.includes("Synchro") || cardData.type.includes("XYZ") || 
                       cardData.type.includes("Link");
 
       const defaultSection = isExtra ? "Extra" : "Main";
+      const deckOptions = decks.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
 
       showModal({
         title: `Add ${cardData.name}`,
         bodyHTML: `
+          <div class="modal-field">
+            <label>Target Deck</label>
+            <select id="modalTargetDeck">
+              ${deckOptions}
+            </select>
+          </div>
           <div class="modal-field">
             <label>Deck Section</label>
             <select id="modalCardType">
@@ -578,6 +578,10 @@
         `,
         confirmText: 'Add to Deck',
         onConfirm: () => {
+          const targetDeckId = parseInt(document.getElementById('modalTargetDeck').value);
+          const deck = decks.find(d => d.id === targetDeckId);
+          if (!deck) return false;
+
           const type = document.getElementById('modalCardType').value;
           const needed = parseInt(document.getElementById('modalCardNeeded').value) || 1;
           const acquired = parseInt(document.getElementById('modalCardAcquired').value) || 0;
