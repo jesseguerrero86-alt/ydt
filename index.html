@@ -3,167 +3,371 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Yu-Gi-Oh! Visual Deck Tracker</title>
+  <title>Yu-Gi-Oh! Deck Tracker & Database</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Rajdhani:wght@500;600;700&display=swap');
+
     :root {
-      --bg: #0f172a;
-      --card-bg: #1e293b;
-      --accent: #38bdf8;
-      --text: #f8fafc;
+      --bg: #070a12;
+      --panel-bg: rgba(15, 23, 42, 0.75);
+      --card-bg: rgba(23, 32, 54, 0.85);
+      --border: rgba(0, 243, 255, 0.25);
+      --border-glow: rgba(0, 243, 255, 0.5);
+      --neon-cyan: #00f3ff;
+      --neon-purple: #b026ff;
+      --neon-pink: #ff0055;
+      --text: #f1f5f9;
       --text-muted: #94a3b8;
-      --border: #334155;
-      --success: #22c55e;
+      --success: #10b981;
+      --danger: #ff0055;
     }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family: 'Rajdhani', system-ui, -apple-system, sans-serif;
       background: var(--bg);
+      background-image: 
+        radial-gradient(circle at 15% 20%, rgba(176, 38, 255, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(0, 243, 255, 0.12) 0%, transparent 40%),
+        linear-gradient(to bottom, #070a12, #0d1322);
+      background-attachment: fixed;
       color: var(--text);
       margin: 0;
-      padding: 20px;
+      padding: 24px 16px;
+      min-height: 100vh;
     }
-    .container { max-width: 1100px; margin: 0 auto; }
-    h1, h2, h3, h4 { margin: 0 0 10px 0; }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1, h2, h3, h4 {
+      font-family: 'Orbitron', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin: 0 0 12px 0;
+    }
+
+    h1 {
+      font-size: 2rem;
+      text-align: center;
+      color: #fff;
+      text-shadow: 0 0 12px var(--neon-cyan), 0 0 24px rgba(0, 243, 255, 0.4);
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    h1::after {
+      content: '';
+      display: block;
+      width: 120px;
+      height: 3px;
+      background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple));
+      margin: 10px auto 0 auto;
+      box-shadow: 0 0 10px var(--neon-cyan);
+    }
+
+    h2 {
+      font-size: 1.25rem;
+      color: var(--neon-cyan);
+      border-bottom: 1px solid rgba(0, 243, 255, 0.2);
+      padding-bottom: 8px;
+    }
+
+    h3 {
+      font-size: 1.1rem;
+      color: #fff;
+    }
+
     button {
-      background: var(--accent);
-      color: #000;
+      font-family: 'Orbitron', sans-serif;
+      background: linear-gradient(135deg, var(--neon-cyan), #00a8ff);
+      color: #050b14;
       border: none;
-      padding: 8px 12px;
-      font-weight: bold;
-      border-radius: 6px;
+      padding: 9px 14px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      border-radius: 4px;
       cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      transition: all 0.2s ease;
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
     }
-    button:hover { opacity: 0.9; }
-    .btn-danger { background: #ef4444; color: #fff; }
-    .card-box {
-      background: var(--card-bg);
+
+    button:hover {
+      box-shadow: 0 0 18px rgba(0, 243, 255, 0.7);
+      transform: translateY(-1px);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, var(--danger), #b91c1c);
+      color: #fff;
+      box-shadow: 0 0 10px rgba(255, 0, 85, 0.3);
+    }
+
+    .btn-danger:hover {
+      box-shadow: 0 0 18px rgba(255, 0, 85, 0.7);
+    }
+
+    .card-panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
       border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 20px;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 24px;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      transition: border-color 0.3s;
     }
-    .form-group { display: flex; gap: 8px; margin-bottom: 12px; }
+
+    .card-panel:hover {
+      border-color: var(--border-glow);
+    }
+
+    .grid-layout {
+      display: grid;
+      grid-template-columns: 1fr 1.1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 868px) {
+      .grid-layout { grid-template-columns: 1fr; }
+    }
+
+    .form-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
     input, select, textarea {
-      background: #0f172a;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 1rem;
+      background: rgba(7, 10, 18, 0.8);
       border: 1px solid var(--border);
       color: var(--text);
-      padding: 8px;
-      border-radius: 4px;
+      padding: 10px 12px;
+      border-radius: 6px;
       width: 100%;
+      outline: none;
+      transition: all 0.2s;
     }
-    
+
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--neon-cyan);
+      box-shadow: 0 0 10px rgba(0, 243, 255, 0.3);
+    }
+
     /* Search Results Grid */
-    .search-grid {
+    .search-results {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-      gap: 12px;
-      max-height: 400px;
+      gap: 14px;
+      max-height: 520px;
       overflow-y: auto;
-      margin-top: 15px;
-      padding-right: 5px;
+      margin-top: 12px;
+      padding-right: 6px;
     }
-    .search-item {
-      background: #0f172a;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 8px;
+
+    /* Custom Scrollbar */
+    .search-results::-webkit-scrollbar { width: 6px; }
+    .search-results::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
+    .search-results::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .search-card-item {
+      background: var(--card-bg);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 10px;
       text-align: center;
       display: flex;
       flex-direction: column;
-      align-items: center;
+      justify-content: space-between;
+      transition: transform 0.2s, border-color 0.2s;
     }
-    .search-item img { width: 100%; border-radius: 4px; margin-bottom: 6px; }
-    .search-item span { font-size: 0.8em; font-weight: bold; margin-bottom: 6px; line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
 
-    /* Decks Layout */
-    .deck-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+    .search-card-item:hover {
+      transform: translateY(-3px);
+      border-color: var(--neon-purple);
+      box-shadow: 0 0 12px rgba(176, 38, 255, 0.25);
+    }
+
+    .search-card-item img {
+      width: 100%;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+    }
+
+    .search-card-item span {
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: block;
+      color: var(--text);
+      line-height: 1.2;
+    }
+
+    /* Deck Lists */
     .progress-bar {
-      background: var(--border);
-      height: 10px;
-      border-radius: 5px;
+      background: rgba(0, 0, 0, 0.5);
+      height: 12px;
+      border-radius: 6px;
       overflow: hidden;
       margin: 8px 0;
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
-    .progress-fill { background: var(--success); height: 100%; width: 0%; transition: width 0.3s; }
-    
-    /* Deck Card Visual Item */
-    .deck-card-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; max-height: 350px; overflow-y: auto; }
+
+    .progress-fill {
+      background: linear-gradient(90deg, var(--neon-cyan), var(--success));
+      height: 100%;
+      width: 0%;
+      transition: width 0.4s ease-out;
+      box-shadow: 0 0 8px var(--success);
+    }
+
+    .deck-card-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
     .deck-card-row {
       display: flex;
       align-items: center;
-      gap: 10px;
-      background: #0f172a;
-      padding: 6px;
+      gap: 12px;
+      background: rgba(7, 10, 18, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 8px 12px;
       border-radius: 6px;
-      border: 1px solid var(--border);
     }
-    .deck-card-row img { width: 45px; height: 65px; border-radius: 3px; object-fit: cover; }
-    .deck-card-info { flex-grow: 1; font-size: 0.85em; }
+
+    .deck-card-row img {
+      width: 38px;
+      border-radius: 3px;
+    }
+
+    .deck-card-info {
+      flex-grow: 1;
+      font-size: 0.95rem;
+    }
+
+    .deck-card-info strong {
+      color: #fff;
+    }
+
+    .tag {
+      font-size: 0.75rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(0, 243, 255, 0.15);
+      color: var(--neon-cyan);
+      border: 1px solid rgba(0, 243, 255, 0.3);
+      font-family: 'Orbitron', sans-serif;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Yu-Gi-Oh! Visual Deck Tracker</h1>
-    
-    <!-- API Search Bar -->
-    <div class="card-box">
-      <h2>Search Card Database</h2>
-      <div class="form-group">
-        <input type="text" id="searchInput" placeholder="Search by name or keyword (e.g. Ash Blossom, Branded)..." onkeyup="if(event.key==='Enter') searchCards()" />
-        <button onclick="searchCards()">Search</button>
-      </div>
-      <div id="searchResults" class="search-grid"></div>
-    </div>
+    <h1>Yu-Gi-Oh! Deck Tracker</h1>
 
-    <!-- Create Deck Form -->
-    <div class="card-box">
-      <h2>Create New Deck</h2>
-      <div class="form-group">
-        <input type="text" id="deckName" placeholder="Deck Name (e.g. Tearlaments)" />
-        <button onclick="addDeck()">Add Deck</button>
+    <div class="grid-layout">
+      <!-- LEFT COLUMN: CARD SEARCH -->
+      <div>
+        <div class="card-panel">
+          <h2>Database Search</h2>
+          <div class="form-group">
+            <input type="text" id="searchInput" placeholder="Enter card name or keyword..." onkeydown="if(event.key==='Enter') searchCards()">
+            <button onclick="searchCards()">Search</button>
+          </div>
+          <div id="searchResults" class="search-results">
+            <small style="color: var(--text-muted);">Query the YGOPRODeck API to view and add cards.</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT COLUMN: DECKS MANAGEMENT -->
+      <div>
+        <div class="card-panel">
+          <h2>Create New Deck</h2>
+          <div class="form-group">
+            <input type="text" id="deckName" placeholder="Deck Name (e.g., Fiendsmith Snake-Eye)">
+            <button onclick="addDeck()">Add Deck</button>
+          </div>
+        </div>
+
+        <div id="deckList"></div>
       </div>
     </div>
-
-    <!-- Decks Display -->
-    <div id="deckList" class="deck-grid"></div>
   </div>
 
   <script>
-    let decks = JSON.parse(localStorage.getItem('ygo_visual_decks')) || [];
-    let currentSearchResults = [];
+    let decks = JSON.parse(localStorage.getItem('ygo_decks_v2')) || [];
+    let lastSearchResults = [];
 
     function saveDecks() {
-      localStorage.setItem('ygo_visual_decks', JSON.stringify(decks));
-      render();
+      localStorage.setItem('ygo_decks_v2', JSON.stringify(decks));
+      renderDecks();
     }
 
-    // --- Search YGOPRODeck API ---
+    // --- CARD SEARCH (YGOPRODeck API) ---
     async function searchCards() {
       const query = document.getElementById('searchInput').value.trim();
       const resultsContainer = document.getElementById('searchResults');
       if (!query) return;
 
-      resultsContainer.innerHTML = '<p style="font-size: 0.9em;">Searching YGOPRODeck API...</p>';
+      resultsContainer.innerHTML = '<small style="color: var(--neon-cyan);">Searching database...</small>';
 
       try {
         const response = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=${encodeURIComponent(query)}`);
-        if (!response.ok) throw new Error('Card not found');
+        if (!response.ok) throw new Error('No cards found');
         
         const data = await response.json();
-        currentSearchResults = data.data.slice(0, 20); // Limit to top 20 results for speed
+        lastSearchResults = data.data.slice(0, 30);
 
-        resultsContainer.innerHTML = currentSearchResults.map((card, idx) => `
-          <div class="search-item">
-            <img src="${card.card_images[0].image_url_small}" alt="${card.name}">
-            <span>${card.name}</span>
-            <button onclick="addCardToDeckFromSearch(${idx})" style="font-size: 0.75em; width: 100%;">+ Add</button>
-          </div>
-        `).join('');
+        renderSearchResults();
       } catch (err) {
-        resultsContainer.innerHTML = '<p style="color: #ef4444; font-size: 0.9em;">No cards found matching keyword.</p>';
+        resultsContainer.innerHTML = '<small style="color: var(--text-muted);">No cards found matching that query.</small>';
       }
     }
 
-    // --- Deck Operations ---
+    function renderSearchResults() {
+      const container = document.getElementById('searchResults');
+      container.innerHTML = '';
+
+      if (lastSearchResults.length === 0) {
+        container.innerHTML = '<small style="color: var(--text-muted);">No results to display.</small>';
+        return;
+      }
+
+      lastSearchResults.forEach(card => {
+        const cardImg = card.card_images[0]?.image_url_small || '';
+        const item = document.createElement('div');
+        item.className = 'search-card-item';
+        
+        let deckOptions = decks.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+
+        item.innerHTML = `
+          <img src="${cardImg}" alt="${card.name}">
+          <span>${card.name}</span>
+          ${decks.length > 0 ? `
+            <select id="target-deck-${card.id}" style="font-size:0.8rem; margin-bottom: 6px;">
+              ${deckOptions}
+            </select>
+            <button onclick="addCardToDeck(${card.id})" style="font-size:0.75rem; padding: 5px;">+ Add</button>
+          ` : '<small style="color: var(--text-muted); font-size:0.75rem;">Create a deck first</small>'}
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    // --- DECK MANAGEMENT ---
     function addDeck() {
       const nameInput = document.getElementById('deckName');
       if (!nameInput.value.trim()) return;
@@ -176,59 +380,59 @@
       });
       nameInput.value = '';
       saveDecks();
+      renderSearchResults();
     }
 
     function deleteDeck(id) {
+      if (!confirm("Are you sure you want to delete this deck?")) return;
       decks = decks.filter(d => d.id !== id);
       saveDecks();
+      renderSearchResults();
     }
 
-    function addCardToDeckFromSearch(searchIdx) {
-      if (decks.length === 0) {
-        alert("Please create a deck first!");
-        return;
-      }
+    function addCardToDeck(cardApiId) {
+      const cardData = lastSearchResults.find(c => c.id === cardApiId);
+      const targetDeckId = parseInt(document.getElementById(`target-deck-${cardApiId}`).value);
+      const deck = decks.find(d => d.id === targetDeckId);
 
-      const cardData = currentSearchResults[searchIdx];
-      let deckOptions = decks.map((d, i) => `${i + 1}. ${d.name}`).join('\n');
-      let chosenDeckIdx = prompt(`Choose deck to add "${cardData.name}" to:\n${deckOptions}`, "1");
-      
-      if (!chosenDeckIdx || isNaN(chosenDeckIdx)) return;
-      let targetDeck = decks[parseInt(chosenDeckIdx) - 1];
+      if (!cardData || !deck) return;
 
-      if (!targetDeck) return;
+      const typePrompt = prompt("Deck Section (Main / Extra / Side):", cardData.type.includes("Extra") || cardData.type.includes("Fusion") || cardData.type.includes("Synchro") || cardData.type.includes("XYZ") || cardData.type.includes("Link") ? "Extra" : "Main");
+      const neededPrompt = parseInt(prompt("Total Copies Needed:", "3")) || 1;
+      const acquiredPrompt = parseInt(prompt("Copies Currently Acquired:", "0")) || 0;
 
-      let type = prompt("Deck section (Main / Extra / Side):", cardData.type.includes("Fusion") || cardData.type.includes("Synchro") || cardData.type.includes("XYZ") || cardData.type.includes("Link") ? "Extra" : "Main");
-      let needed = parseInt(prompt("Total Copies Needed:", "3")) || 1;
-      let acquired = parseInt(prompt("Copies Acquired:", "0")) || 0;
-
-      targetDeck.cards.push({
+      deck.cards.push({
         id: Date.now(),
         name: cardData.name,
-        type: type || "Main",
-        image: cardData.card_images[0].image_url_small,
-        needed,
-        acquired
+        type: typePrompt || "Main",
+        img: cardData.card_images[0]?.image_url_small || '',
+        needed: neededPrompt,
+        acquired: acquiredPrompt
       });
 
       saveDecks();
     }
 
-    function updateCardAcquired(deckId, cardId, change) {
+    function updateAcquired(deckId, cardId, delta) {
       const deck = decks.find(d => d.id === deckId);
       const card = deck.cards.find(c => c.id === cardId);
-      card.acquired = Math.max(0, Math.min(card.needed, card.acquired + change));
+      card.acquired = Math.max(0, Math.min(card.needed, card.acquired + delta));
+      saveDecks();
+    }
+
+    function removeCard(deckId, cardId) {
+      const deck = decks.find(d => d.id === deckId);
+      deck.cards = deck.cards.filter(c => c.id !== cardId);
       saveDecks();
     }
 
     function updateAugmentations(deckId, text) {
       const deck = decks.find(d => d.id === deckId);
       deck.augmentations = text;
-      localStorage.setItem('ygo_visual_decks', JSON.stringify(decks));
+      localStorage.setItem('ygo_decks_v2', JSON.stringify(decks));
     }
 
-    // --- Rendering ---
-    function render() {
+    function renderDecks() {
       const container = document.getElementById('deckList');
       container.innerHTML = '';
 
@@ -237,8 +441,9 @@
         let totalNeeded = 0, totalAcquired = 0;
 
         deck.cards.forEach(c => {
-          if (c.type.toLowerCase() === 'extra') extraCount += c.needed;
-          else if (c.type.toLowerCase() === 'side') sideCount += c.needed;
+          const typeLower = c.type.toLowerCase();
+          if (typeLower === 'extra') extraCount += c.needed;
+          else if (typeLower === 'side') sideCount += c.needed;
           else mainCount += c.needed;
 
           totalNeeded += c.needed;
@@ -248,49 +453,57 @@
         const progressPercent = totalNeeded > 0 ? Math.round((totalAcquired / totalNeeded) * 100) : 0;
 
         const deckEl = document.createElement('div');
-        deckEl.className = 'card-box';
+        deckEl.className = 'card-panel';
         deckEl.innerHTML = `
           <h3>${deck.name}</h3>
-          <p style="font-size: 0.85em; color: var(--text-muted);">
-            Main: ${mainCount} | Extra: ${extraCount} | Side: ${sideCount}
+          <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 12px;">
+            Main: <strong style="color:var(--neon-cyan);">${mainCount}</strong> | 
+            Extra: <strong style="color:var(--neon-cyan);">${extraCount}</strong> | 
+            Side: <strong style="color:var(--neon-cyan);">${sideCount}</strong>
           </p>
           <div>
-            <small>Build Progress: ${totalAcquired}/${totalNeeded} cards (${progressPercent}%)</small>
+            <div style="display:flex; justify-content:space-between; font-size:0.85rem;">
+              <span>Build Progress</span>
+              <span style="color:var(--neon-cyan);">${totalAcquired}/${totalNeeded} (${progressPercent}%)</span>
+            </div>
             <div class="progress-bar">
               <div class="progress-fill" style="width: ${progressPercent}%"></div>
             </div>
           </div>
 
-          <h4>Deck List</h4>
-          <div class="deck-card-list">
-            ${deck.cards.map(c => `
-              <div class="deck-card-row">
-                <img src="${c.image}" alt="${c.name}">
-                <div class="deck-card-info">
-                  <strong>[${c.type}] ${c.name}</strong><br>
-                  <small>Acquired: ${c.acquired} / ${c.needed}</small>
+          <div style="margin-top: 16px;">
+            <h4 style="color: var(--neon-cyan); font-size: 0.95rem;">Card List</h4>
+            <div class="deck-card-list">
+              ${deck.cards.map(c => `
+                <div class="deck-card-row">
+                  ${c.img ? `<img src="${c.img}">` : ''}
+                  <div class="deck-card-info">
+                    <strong>${c.name}</strong> <span class="tag">${c.type}</span><br>
+                    <span style="color: var(--text-muted); font-size: 0.85rem;">Acquired: ${c.acquired} / ${c.needed}</span>
+                  </div>
+                  <div style="display:flex; gap: 4px;">
+                    <button onclick="updateAcquired(${deck.id}, ${c.id}, 1)">+</button>
+                    <button onclick="updateAcquired(${deck.id}, ${c.id}, -1)">-</button>
+                    <button class="btn-danger" onclick="removeCard(${deck.id}, ${c.id})">&times;</button>
+                  </div>
                 </div>
-                <div>
-                  <button onclick="updateCardAcquired(${deck.id}, ${c.id}, 1)">+</button>
-                  <button onclick="updateCardAcquired(${deck.id}, ${c.id}, -1)">-</button>
-                </div>
-              </div>
-            `).join('')}
+              `).join('')}
+            </div>
           </div>
 
-          <div style="margin-top: 15px;">
-            <h4>Suggested Augmentations</h4>
-            <textarea placeholder="e.g. Side in Nibiru for going second..." 
+          <div style="margin-top: 16px;">
+            <h4 style="color: var(--neon-cyan); font-size: 0.95rem;">Suggested Augmentations / Tech Notes</h4>
+            <textarea rows="3" placeholder="e.g., Side in Droll & Lock Bird vs. search heavy matchups..." 
               onchange="updateAugmentations(${deck.id}, this.value)">${deck.augmentations || ''}</textarea>
           </div>
 
-          <button class="btn-danger" style="margin-top: 15px; width: 100%;" onclick="deleteDeck(${deck.id})">Delete Deck</button>
+          <button class="btn-danger" style="margin-top: 16px; width: 100%;" onclick="deleteDeck(${deck.id})">Delete Deck</button>
         `;
         container.appendChild(deckEl);
       });
     }
 
-    render();
+    renderDecks();
   </script>
 </body>
 </html>
