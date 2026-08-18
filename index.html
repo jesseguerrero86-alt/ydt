@@ -117,6 +117,14 @@
       box-shadow: 0 0 18px rgba(255, 0, 85, 0.7);
     }
 
+    .btn-icon {
+      padding: 5px 10px;
+      font-size: 0.75rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
     .card-panel {
       background: var(--panel-bg);
       backdrop-filter: blur(12px);
@@ -129,6 +137,19 @@
     }
 
     .card-panel:hover { border-color: var(--border-glow); }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .panel-header h2 {
+      margin: 0;
+      border-bottom: none;
+      padding-bottom: 0;
+    }
 
     .grid-layout {
       display: grid;
@@ -207,6 +228,62 @@
       display: block;
       color: var(--text);
       line-height: 1.2;
+    }
+
+    /* FULLSCREEN SEARCH MODAL STYLES */
+    .fullscreen-search-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(5, 8, 16, 0.95);
+      backdrop-filter: blur(16px);
+      z-index: 900;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .fullscreen-search-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .fullscreen-search-container {
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .fullscreen-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 12px;
+    }
+
+    .fullscreen-header h2 {
+      margin: 0;
+      border-bottom: none;
+      padding-bottom: 0;
+      font-size: 1.5rem;
+    }
+
+    .fullscreen-search-overlay .search-results {
+      max-height: none;
+      flex-grow: 1;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 18px;
+      padding-right: 12px;
     }
 
     /* Deck Lists */
@@ -372,8 +449,13 @@
     <div class="grid-layout">
       <!-- LEFT COLUMN: CARD SEARCH -->
       <div>
-        <div class="card-panel">
-          <h2>Database Search</h2>
+        <div class="card-panel" id="searchPanel">
+          <div class="panel-header">
+            <h2>Database Search</h2>
+            <button class="btn-secondary btn-icon" onclick="toggleFullscreenSearch()">
+              <span>⛶ Expand</span>
+            </button>
+          </div>
           <div class="form-group">
             <input type="text" id="searchInput" placeholder="Enter card name or keyword..." onkeydown="if(event.key==='Enter') searchCards()">
             <button onclick="searchCards()">Search</button>
@@ -399,6 +481,25 @@
     </div>
   </div>
 
+  <!-- FULLSCREEN SEARCH MODAL OVERLAY -->
+  <div id="fullscreenSearchModal" class="fullscreen-search-overlay">
+    <div class="fullscreen-search-container">
+      <div class="fullscreen-header">
+        <h2>Database Search</h2>
+        <button class="btn-secondary btn-icon" onclick="toggleFullscreenSearch()">
+          <span>✕ Close</span>
+        </button>
+      </div>
+      <div class="form-group">
+        <input type="text" id="fullscreenSearchInput" placeholder="Enter card name or keyword..." onkeydown="if(event.key==='Enter') searchCards(true)">
+        <button onclick="searchCards(true)">Search</button>
+      </div>
+      <div id="fullscreenSearchResults" class="search-results">
+        <small style="color: var(--text-muted);">Query the YGOPRODeck API to view and add cards.</small>
+      </div>
+    </div>
+  </div>
+
   <!-- CUSTOM MODAL HTML STRUCTURE -->
   <div id="customModal" class="modal-overlay">
     <div class="modal-box">
@@ -415,6 +516,7 @@
     let decks = JSON.parse(localStorage.getItem('ygo_decks_v2')) || [];
     let collapsedSections = JSON.parse(localStorage.getItem('ygo_collapsed_v1')) || {};
     let lastSearchResults = [];
+    let isFullscreenSearchActive = false;
 
     function saveDecks() {
       localStorage.setItem('ygo_decks_v2', JSON.stringify(decks));
@@ -426,6 +528,30 @@
       localStorage.setItem('ygo_collapsed_v1', JSON.stringify(collapsedSections));
       renderDecks();
     }
+
+    // --- FULLSCREEN SEARCH TOGGLE ---
+    function toggleFullscreenSearch() {
+      const modal = document.getElementById('fullscreenSearchModal');
+      isFullscreenSearchActive = !isFullscreenSearchActive;
+
+      if (isFullscreenSearchActive) {
+        modal.classList.add('active');
+        document.getElementById('fullscreenSearchInput').value = document.getElementById('searchInput').value;
+        document.getElementById('fullscreenSearchInput').focus();
+      } else {
+        modal.classList.remove('active');
+        document.getElementById('searchInput').value = document.getElementById('fullscreenSearchInput').value;
+      }
+
+      renderSearchResults();
+    }
+
+    // Close on Escape key
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isFullscreenSearchActive) {
+        toggleFullscreenSearch();
+      }
+    });
 
     // --- CUSTOM MODAL DIALOG SYSTEM ---
     function showModal({ title, bodyHTML, confirmText = 'Confirm', isDanger = false, onConfirm }) {
@@ -458,28 +584,43 @@
     }
 
     // --- CARD SEARCH (YGOPRODeck API) ---
-    async function searchCards() {
-      const query = document.getElementById('searchInput').value.trim();
+    async function searchCards(fromFullscreen = false) {
+      const searchInputId = fromFullscreen ? 'fullscreenSearchInput' : 'searchInput';
+      const query = document.getElementById(searchInputId).value.trim();
+      
+      // Sync both search inputs
+      document.getElementById('searchInput').value = query;
+      document.getElementById('fullscreenSearchInput').value = query;
+
       const resultsContainer = document.getElementById('searchResults');
+      const fullscreenResultsContainer = document.getElementById('fullscreenSearchResults');
+
       if (!query) return;
 
-      resultsContainer.innerHTML = '<small style="color: var(--neon-cyan);">Searching database...</small>';
+      const loadingHTML = '<small style="color: var(--neon-cyan);">Searching database...</small>';
+      resultsContainer.innerHTML = loadingHTML;
+      fullscreenResultsContainer.innerHTML = loadingHTML;
 
       try {
         const response = await fetch(`https://db.ygoprodeck.com/api/v7/cardinfo.php?fname=${encodeURIComponent(query)}`);
         if (!response.ok) throw new Error('No cards found');
         
         const data = await response.json();
-        lastSearchResults = data.data.slice(0, 30);
+        lastSearchResults = data.data.slice(0, 40);
 
         renderSearchResults();
       } catch (err) {
-        resultsContainer.innerHTML = '<small style="color: var(--text-muted);">No cards found matching that query.</small>';
+        const noResultsHTML = '<small style="color: var(--text-muted);">No cards found matching that query.</small>';
+        resultsContainer.innerHTML = noResultsHTML;
+        fullscreenResultsContainer.innerHTML = noResultsHTML;
       }
     }
 
     function renderSearchResults() {
-      const container = document.getElementById('searchResults');
+      const container = isFullscreenSearchActive 
+        ? document.getElementById('fullscreenSearchResults') 
+        : document.getElementById('searchResults');
+
       container.innerHTML = '';
 
       if (lastSearchResults.length === 0) {
