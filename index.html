@@ -227,7 +227,53 @@
       box-shadow: 0 0 8px var(--success);
     }
 
-    .deck-card-list { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+    /* Collapsible Section Styles */
+    .collapsible-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      padding: 8px 10px;
+      background: rgba(0, 243, 255, 0.05);
+      border: 1px solid rgba(0, 243, 255, 0.15);
+      border-radius: 6px;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .collapsible-header:hover {
+      background: rgba(0, 243, 255, 0.12);
+      border-color: var(--neon-cyan);
+    }
+
+    .collapsible-header h4 {
+      margin: 0;
+      color: var(--neon-cyan);
+      font-size: 0.95rem;
+    }
+
+    .toggle-icon {
+      font-size: 0.75rem;
+      color: var(--neon-cyan);
+      transition: transform 0.25s ease;
+    }
+
+    .collapsible-body {
+      max-height: 1000px;
+      overflow: hidden;
+      transition: max-height 0.35s ease-in-out, opacity 0.25s ease, margin-top 0.25s ease;
+      opacity: 1;
+      margin-top: 10px;
+    }
+
+    .collapsible-body.collapsed {
+      max-height: 0;
+      opacity: 0;
+      margin-top: 0;
+      pointer-events: none;
+    }
+
+    .deck-card-list { display: flex; flex-direction: column; gap: 10px; }
 
     .deck-card-row {
       display: flex;
@@ -367,10 +413,17 @@
 
   <script>
     let decks = JSON.parse(localStorage.getItem('ygo_decks_v2')) || [];
+    let collapsedSections = JSON.parse(localStorage.getItem('ygo_collapsed_v1')) || {};
     let lastSearchResults = [];
 
     function saveDecks() {
       localStorage.setItem('ygo_decks_v2', JSON.stringify(decks));
+      renderDecks();
+    }
+
+    function toggleSection(sectionKey) {
+      collapsedSections[sectionKey] = !collapsedSections[sectionKey];
+      localStorage.setItem('ygo_collapsed_v1', JSON.stringify(collapsedSections));
       renderDecks();
     }
 
@@ -480,6 +533,9 @@
         isDanger: true,
         onConfirm: () => {
           decks = decks.filter(d => d.id !== id);
+          delete collapsedSections[`cards_${id}`];
+          delete collapsedSections[`notes_${id}`];
+          localStorage.setItem('ygo_collapsed_v1', JSON.stringify(collapsedSections));
           saveDecks();
           renderSearchResults();
           return true;
@@ -535,6 +591,10 @@
             acquired: acquired
           });
 
+          // Ensure card list expands when a card is added
+          collapsedSections[`cards_${deck.id}`] = false;
+          localStorage.setItem('ygo_collapsed_v1', JSON.stringify(collapsedSections));
+
           saveDecks();
           return true;
         }
@@ -579,6 +639,8 @@
         });
 
         const progressPercent = totalNeeded > 0 ? Math.round((totalAcquired / totalNeeded) * 100) : 0;
+        const isCardsCollapsed = !!collapsedSections[`cards_${deck.id}`];
+        const isNotesCollapsed = !!collapsedSections[`notes_${deck.id}`];
 
         const deckEl = document.createElement('div');
         deckEl.className = 'card-panel';
@@ -599,30 +661,46 @@
             </div>
           </div>
 
+          <!-- COLLAPSIBLE CARD LIST -->
           <div style="margin-top: 16px;">
-            <h4 style="color: var(--neon-cyan); font-size: 0.95rem;">Card List</h4>
-            <div class="deck-card-list">
-              ${deck.cards.map(c => `
-                <div class="deck-card-row">
-                  ${c.img ? `<img src="${c.img}">` : ''}
-                  <div class="deck-card-info">
-                    <strong>${c.name}</strong> <span class="tag">${c.type}</span><br>
-                    <span style="color: var(--text-muted); font-size: 0.85rem;">Acquired: ${c.acquired} / ${c.needed}</span>
-                  </div>
-                  <div style="display:flex; gap: 4px;">
-                    <button onclick="updateAcquired(${deck.id}, ${c.id}, 1)">+</button>
-                    <button onclick="updateAcquired(${deck.id}, ${c.id}, -1)">-</button>
-                    <button class="btn-danger" onclick="removeCard(${deck.id}, ${c.id})">&times;</button>
-                  </div>
+            <div class="collapsible-header" onclick="toggleSection('cards_${deck.id}')">
+              <h4>Card List (${deck.cards.length})</h4>
+              <span class="toggle-icon">${isCardsCollapsed ? '►' : '▼'}</span>
+            </div>
+            <div class="collapsible-body ${isCardsCollapsed ? 'collapsed' : ''}">
+              ${deck.cards.length === 0 ? `
+                <small style="color: var(--text-muted); display: block; padding: 8px 0;">No cards added to this deck yet.</small>
+              ` : `
+                <div class="deck-card-list">
+                  ${deck.cards.map(c => `
+                    <div class="deck-card-row">
+                      ${c.img ? `<img src="${c.img}">` : ''}
+                      <div class="deck-card-info">
+                        <strong>${c.name}</strong> <span class="tag">${c.type}</span><br>
+                        <span style="color: var(--text-muted); font-size: 0.85rem;">Acquired: ${c.acquired} / ${c.needed}</span>
+                      </div>
+                      <div style="display:flex; gap: 4px;">
+                        <button onclick="updateAcquired(${deck.id}, ${c.id}, 1)">+</button>
+                        <button onclick="updateAcquired(${deck.id}, ${c.id}, -1)">-</button>
+                        <button class="btn-danger" onclick="removeCard(${deck.id}, ${c.id})">&times;</button>
+                      </div>
+                    </div>
+                  `).join('')}
                 </div>
-              `).join('')}
+              `}
             </div>
           </div>
 
-          <div style="margin-top: 16px;">
-            <h4 style="color: var(--neon-cyan); font-size: 0.95rem;">Suggested Augmentations / Tech Notes</h4>
-            <textarea rows="3" placeholder="e.g., Side in Droll & Lock Bird vs. search heavy matchups..." 
-              onchange="updateAugmentations(${deck.id}, this.value)">${deck.augmentations || ''}</textarea>
+          <!-- COLLAPSIBLE NOTES -->
+          <div style="margin-top: 12px;">
+            <div class="collapsible-header" onclick="toggleSection('notes_${deck.id}')">
+              <h4>Suggested Augmentations / Tech Notes</h4>
+              <span class="toggle-icon">${isNotesCollapsed ? '►' : '▼'}</span>
+            </div>
+            <div class="collapsible-body ${isNotesCollapsed ? 'collapsed' : ''}">
+              <textarea rows="3" placeholder="e.g., Side in Droll & Lock Bird vs. search heavy matchups..." 
+                onchange="updateAugmentations(${deck.id}, this.value)">${deck.augmentations || ''}</textarea>
+            </div>
           </div>
 
           <button class="btn-danger" style="margin-top: 16px; width: 100%;" onclick="deleteDeck(${deck.id})">Delete Deck</button>
